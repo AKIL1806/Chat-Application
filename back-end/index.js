@@ -8,7 +8,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173', // Vite default port
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
   },
 });
@@ -16,27 +16,22 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-// Connect to Redis running inside WSL using its IP address
-const client = redis.createClient({
-  socket: {
-    host: '172.30.192.104',
-    port: 6379,
-  }
-});
-
+// Redis client
+const client = redis.createClient();
 client.connect().catch(console.error);
 
-// API endpoint to fetch all messages
+// GET: fetch all chat messages
 app.get('/messages', async (req, res) => {
   const messages = await client.lRange('chat_messages', 0, -1);
-  res.json(messages.map(msg => JSON.parse(msg)));
+  const parsedMessages = messages.map(msg => JSON.parse(msg));
+  res.json(parsedMessages);
 });
 
-// API endpoint to post a new message
+// POST: store a new message and broadcast it
 app.post('/messages', async (req, res) => {
   const message = req.body;
   await client.rPush('chat_messages', JSON.stringify(message));
-  io.emit('chat message', message); // emit to all clients
+  io.emit('chat message', message);
   res.status(201).send('Message stored and broadcasted');
 });
 
@@ -50,6 +45,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// Start server
 httpServer.listen(3000, () => {
   console.log('Server is running on http://localhost:3000');
 });
