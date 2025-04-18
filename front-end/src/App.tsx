@@ -3,17 +3,24 @@ import io from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
 
+type ChatMessage = {
+  username: string;
+  text: string;
+};
+
 function App() {
-  const [messages, setMessages] = useState<{ username: string; text: string }[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [username, setUsername] = useState('');
 
   useEffect(() => {
+    // Load initial messages from the API
     fetch('http://localhost:3000/messages')
       .then(res => res.json())
       .then(data => setMessages(data));
 
-    socket.on('chat message', (msg) => {
+    // Listen for new chat messages via WebSocket
+    socket.on('chat message', (msg: ChatMessage) => {
       setMessages(prev => [...prev, msg]);
     });
 
@@ -34,19 +41,17 @@ function App() {
     <div>
       <h1>Chat</h1>
       <input
-        placeholder="Username"
+        placeholder="Your name"
         value={username}
         onChange={e => setUsername(e.target.value)}
       />
       <div>
         {messages.map((msg, i) => (
-          <div key={i}>
-            <strong>{msg.username}:</strong> {msg.text}
-          </div>
+          <div key={i}><strong>{msg.username}:</strong> {msg.text}</div>
         ))}
       </div>
       <input
-        placeholder="Type a message"
+        placeholder="Type a message..."
         value={input}
         onChange={e => setInput(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && sendMessage()}
