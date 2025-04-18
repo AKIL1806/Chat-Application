@@ -43,11 +43,17 @@ app.get('/messages', async (req, res) => {
 
 // REST endpoint to send a message
 app.post('/messages', async (req, res) => {
-  const message = req.body;
+  const { username, text } = req.body;
 
-  if (!message.username || !message.text) {
+  if (!username || !text) {
     return res.status(400).send('Invalid message');
   }
+
+  const message = {
+    username,
+    text,
+    timestamp: new Date().toISOString()
+  };
 
   try {
     await client.rPush('chat_messages', JSON.stringify(message));
@@ -58,7 +64,6 @@ app.post('/messages', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-
 // WebSocket logic
 io.on('connection', (socket) => {
   console.log('New WebSocket connection');
@@ -66,9 +71,38 @@ io.on('connection', (socket) => {
   socket.on('chat message', async (msg) => {
     if (!msg.username || !msg.text) return;
 
-    await client.rPush('chat_messages', JSON.stringify(msg));
-    io.emit('chat message', msg);
+    const messageWithTimestamp = {
+      ...msg,
+      timestamp: new Date().toISOString() // ✅ always ISO format
+    };
+
+    await client.rPush('chat_messages', JSON.stringify(messageWithTimestamp));
+    io.emit('chat message', messageWithTimestamp);
   });
+});
+
+// POST /messages
+app.post('/messages', async (req, res) => {
+  const { username, text } = req.body;
+
+  if (!username || !text) {
+    return res.status(400).send('Invalid message');
+  }
+
+  const message = {
+    username,
+    text,
+    timestamp: new Date().toISOString() // ✅ ISO format
+  };
+
+  try {
+    await client.rPush('chat_messages', JSON.stringify(message));
+    io.emit('chat message', message);
+    res.status(201).send('Message stored and broadcasted');
+  } catch (err) {
+    console.error('Error storing message:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Start server

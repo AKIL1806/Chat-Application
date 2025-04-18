@@ -3,8 +3,14 @@ import io from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
 
+interface ChatMessage {
+  username: string;
+  text: string;
+  timestamp: string;
+}
+
 function App() {
-  const [messages, setMessages] = useState<{ username: string; text: string }[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [username, setUsername] = useState('');
 
@@ -13,7 +19,7 @@ function App() {
       .then(res => res.json())
       .then(data => setMessages(data));
 
-    socket.on('chat message', (msg) => {
+    socket.on('chat message', (msg: ChatMessage) => {
       setMessages(prev => [...prev, msg]);
     });
 
@@ -30,6 +36,13 @@ function App() {
     }
   };
 
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return isNaN(date.getTime())
+      ? 'Invalid time'
+      : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div style={{
       height: '100vh',
@@ -39,16 +52,19 @@ function App() {
       justifyContent: 'center',
       alignItems: 'center',
       padding: '1rem',
+      boxSizing: 'border-box',
     }}>
       <div style={{
         backgroundColor: 'white',
         padding: '2rem',
-        borderRadius: '10px',
+        borderRadius: '12px',
         width: '100%',
         maxWidth: '600px',
-        boxShadow: '0 0 20px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
       }}>
-        <h1 style={{ textAlign: 'center', color: 'royalblue' }}>Chat App</h1>
+        <h1 style={{ textAlign: 'center', color: 'royalblue', marginBottom: '1rem' }}>
+          Chat Flow
+        </h1>
 
         <input
           placeholder="Enter your username"
@@ -60,6 +76,7 @@ function App() {
             padding: '0.5rem',
             borderRadius: '5px',
             border: '1px solid #ccc',
+            fontSize: '1rem',
           }}
         />
 
@@ -69,12 +86,18 @@ function App() {
           height: '300px',
           overflowY: 'auto',
           marginBottom: '1rem',
-          backgroundColor: '#f5f5f5',
+          backgroundColor: '#f0f4ff',
           borderRadius: '5px',
         }}>
           {messages.map((msg, i) => (
-            <div key={i}>
-              <strong style={{ color: 'royalblue' }}>{msg.username}</strong>: <span style={{ color: '#333' }}>{msg.text}</span>
+            <div key={i} style={{ marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                <strong style={{ color: 'royalblue' }}>{msg.username}</strong>
+                <span style={{ marginLeft: '8px', fontSize: '0.8rem', color: '#888' }}>
+                  {formatTime(msg.timestamp)}
+                </span>
+              </div>
+              <div style={{ color: '#222', marginLeft: '4px' }}>{msg.text}</div>
             </div>
           ))}
         </div>
@@ -91,6 +114,7 @@ function App() {
               borderRadius: '5px',
               border: '1px solid #ccc',
               marginRight: '0.5rem',
+              fontSize: '1rem',
             }}
           />
           <button
@@ -101,6 +125,8 @@ function App() {
               color: 'white',
               border: 'none',
               borderRadius: '5px',
+              fontWeight: 'bold',
+              fontSize: '1rem',
               cursor: 'pointer',
             }}
           >
