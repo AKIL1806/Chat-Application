@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
@@ -6,14 +6,13 @@ const socket = io('http://localhost:3000');
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState('');
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch initial chat history
     fetch('http://localhost:3000/messages')
       .then((res) => res.json())
       .then((data) => setMessages(data.map((msg: any) => msg.text)));
 
-    // Listen for new messages via socket
     socket.on('chat message', (msg: string) => {
       setMessages((prev) => [...prev, msg]);
     });
@@ -23,40 +22,67 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const sendMessage = async () => {
     if (input.trim()) {
-      // Emit to WebSocket
       socket.emit('chat message', input);
-
-      // Send to backend to store
       await fetch('http://localhost:3000/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: input }),
       });
-
       setInput('');
     }
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Chat</h2>
-      <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #ccc', padding: 10 }}>
+    <div style={{ padding: 20, maxWidth: 500, margin: 'auto' }}>
+      <h2>💬 Chat App</h2>
+      <div
+        style={{
+          maxHeight: 400,
+          overflowY: 'auto',
+          border: '1px solid #ccc',
+          padding: 10,
+          marginBottom: 10,
+          borderRadius: 8,
+        }}
+      >
         {messages.map((msg, idx) => (
-          <div key={idx}>{msg}</div>
+          <div
+            key={idx}
+            style={{
+              backgroundColor: '#f1f1f1',
+              padding: 8,
+              marginBottom: 6,
+              borderRadius: 5,
+            }}
+          >
+            {msg}
+          </div>
         ))}
+        <div ref={endRef} />
       </div>
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-        placeholder="Type a message..."
-        style={{ width: '80%', padding: 8, marginTop: 10 }}
-      />
-      <button onClick={sendMessage} style={{ padding: 8, marginLeft: 5 }}>
-        Send
-      </button>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder="Type a message..."
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 5,
+            border: '1px solid #ccc',
+          }}
+        />
+        <button onClick={sendMessage} style={{ padding: '10px 20px' }}>
+          Send
+        </button>
+      </div>
     </div>
   );
 }
