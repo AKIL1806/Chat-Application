@@ -1,31 +1,25 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const redis = require('redis');
 const cors = require('cors');
-const http = require('http');
-const WebSocket = require('ws');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // your React front-end
+    methods: ["GET", "POST"]
+  }
+});
+
 app.use(cors());
 app.use(express.json());
-
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
 const client = redis.createClient();
 client.connect().catch(console.error);
 
-let sockets = [];
-
-wss.on('connection', (ws) => {
-  sockets.push(ws);
-  console.log('New client connected');
-
-  ws.on('close', () => {
-    sockets = sockets.filter(s => s !== ws);
-    console.log('Client disconnected');
-  });
-});
-
+// REST API endpoints
 app.get('/messages', async (req, res) => {
   const messages = await client.lRange('chat_messages', 0, -1);
   res.json(messages.map(msg => JSON.parse(msg)));
@@ -34,15 +28,24 @@ app.get('/messages', async (req, res) => {
 app.post('/messages', async (req, res) => {
   const message = req.body;
   await client.rPush('chat_messages', JSON.stringify(message));
+  res.status(201).send('Message stored');
+});
 
-  // Broadcast to all connected WebSocket clients
-  sockets.forEach(ws => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
-    }
+// WebSocket setup
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  socket.on("chat message", async (msg) => {
+    // Store in Redis
+    await client.rPush("chat_messages", JSON.stringify(msg));
+
+    // Broadcast to all clients
+    io.emit("chat message", msg);
   });
 
-  res.status(201).send('Message stored');
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
 });
 
 server.listen(3000, () => {
