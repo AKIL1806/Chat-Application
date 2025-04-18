@@ -1,50 +1,62 @@
-import { useEffect, useState } from "react";
-import io from "socket.io-client";
-import axios from "axios";
-import "./App.css";
+import { useEffect, useState } from 'react';
+import io from 'socket.io-client';
 
-const socket = io("http://localhost:3000");
+const socket = io('http://localhost:3000');
 
 function App() {
-  const [messages, setMessages] = useState<{ user: string; text: string }[]>([]);
-  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<string[]>([]);
+  const [input, setInput] = useState('');
 
   useEffect(() => {
-    // Fetch existing messages
-    axios.get("http://localhost:3000/messages").then((res) => {
-      setMessages(res.data);
-    });
+    // Fetch initial chat history
+    fetch('http://localhost:3000/messages')
+      .then((res) => res.json())
+      .then((data) => setMessages(data.map((msg: any) => msg.text)));
 
-    // Listen for new messages
-    socket.on("chat message", (msg) => {
+    // Listen for new messages via socket
+    socket.on('chat message', (msg: string) => {
       setMessages((prev) => [...prev, msg]);
     });
 
     return () => {
-      socket.off("chat message");
+      socket.off('chat message');
     };
   }, []);
 
-  const sendMessage = () => {
-    const message = { user: "User", text: input };
-    socket.emit("chat message", message);
-    setInput("");
+  const sendMessage = async () => {
+    if (input.trim()) {
+      // Emit to WebSocket
+      socket.emit('chat message', input);
+
+      // Send to backend to store
+      await fetch('http://localhost:3000/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: input }),
+      });
+
+      setInput('');
+    }
   };
 
   return (
-    <div className="App">
-      <h1>Chat</h1>
-      <div className="messages">
-        {messages.map((msg, index) => (
-          <div key={index}><strong>{msg.user}:</strong> {msg.text}</div>
+    <div style={{ padding: 20 }}>
+      <h2>Chat</h2>
+      <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #ccc', padding: 10 }}>
+        {messages.map((msg, idx) => (
+          <div key={idx}>{msg}</div>
         ))}
       </div>
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Type your message..."
+        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+        placeholder="Type a message..."
+        style={{ width: '80%', padding: 8, marginTop: 10 }}
       />
-      <button onClick={sendMessage}>Send</button>
+      <button onClick={sendMessage} style={{ padding: 8, marginLeft: 5 }}>
+        Send
+      </button>
     </div>
   );
 }
