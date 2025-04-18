@@ -1,20 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
 
 function App() {
-  const [messages, setMessages] = useState<string[]>([]);
+  const [username, setUsername] = useState(''); // ✅ Added username state
+  const [messages, setMessages] = useState<{ user: string; text: string }[]>([]);
   const [input, setInput] = useState('');
-  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // ✅ Fetch messages with user and text
     fetch('http://localhost:3000/messages')
-      .then((res) => res.json())
-      .then((data) => setMessages(data.map((msg: any) => msg.text)));
+      .then(res => res.json())
+      .then(data => setMessages(data));
 
-    socket.on('chat message', (msg: string) => {
-      setMessages((prev) => [...prev, msg]);
+    // ✅ Listen for incoming messages
+    socket.on('chat message', (msg: { user: string; text: string }) => {
+      setMessages(prev => [...prev, msg]);
     });
 
     return () => {
@@ -22,67 +24,44 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const sendMessage = async () => {
-    if (input.trim()) {
-      socket.emit('chat message', input);
-      await fetch('http://localhost:3000/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: input }),
-      });
+  const sendMessage = () => {
+    if (input.trim() && username.trim()) {
+      const message = { user: username, text: input };
+      socket.emit('chat message', message);
       setInput('');
     }
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 500, margin: 'auto' }}>
-      <h2>💬 Chat App</h2>
-      <div
-        style={{
-          maxHeight: 400,
-          overflowY: 'auto',
-          border: '1px solid #ccc',
-          padding: 10,
-          marginBottom: 10,
-          borderRadius: 8,
-        }}
-      >
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            style={{
-              backgroundColor: '#f1f1f1',
-              padding: 8,
-              marginBottom: 6,
-              borderRadius: 5,
-            }}
-          >
-            {msg}
+    <div style={{ padding: 20 }}>
+      <h1>Chat</h1>
+
+      {/* ✅ Username Input */}
+      <input
+        placeholder="Enter your name"
+        value={username}
+        onChange={e => setUsername(e.target.value)}
+        style={{ marginBottom: 10, display: 'block' }}
+      />
+
+      {/* Chat Messages */}
+      <div style={{ marginBottom: 10 }}>
+        {messages.map((msg, i) => (
+          <div key={i}>
+            <strong>{msg.user}:</strong> {msg.text}
           </div>
         ))}
-        <div ref={endRef} />
       </div>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type a message..."
-          style={{
-            flex: 1,
-            padding: 10,
-            borderRadius: 5,
-            border: '1px solid #ccc',
-          }}
-        />
-        <button onClick={sendMessage} style={{ padding: '10px 20px' }}>
-          Send
-        </button>
-      </div>
+
+      {/* Message Input */}
+      <input
+        placeholder="Type a message"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && sendMessage()}
+        style={{ marginRight: 10 }}
+      />
+      <button onClick={sendMessage}>Send</button>
     </div>
   );
 }
