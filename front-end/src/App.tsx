@@ -9,13 +9,11 @@ function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    // Fetch initial messages
     fetch('http://localhost:3000/messages')
       .then(res => res.json())
       .then(data => setMessages(data));
 
-    // Listen for real-time messages
-    socket.on('chat message', (msg: { username: string; text: string }) => {
+    socket.on('chat message', (msg) => {
       setMessages(prev => [...prev, msg]);
     });
 
@@ -33,43 +31,59 @@ function App() {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Chat</h1>
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ textAlign: 'center' }}>Chat App</h1>
 
       <input
-        placeholder="Your name"
+        placeholder="Enter your username"
         value={username}
         onChange={e => setUsername(e.target.value)}
-        style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+        style={{
+          width: '100%',
+          padding: '0.5rem',
+          marginBottom: '1rem',
+          fontSize: '1rem'
+        }}
       />
 
       <div
         style={{
           border: '1px solid #ccc',
-          padding: '10px',
-          marginBottom: '10px',
-          maxHeight: '300px',
+          borderRadius: '8px',
+          padding: '1rem',
+          height: '300px',
           overflowY: 'auto',
-          backgroundColor: '#f9f9f9',
-          borderRadius: '5px',
+          marginBottom: '1rem',
+          backgroundColor: '#f9f9f9'
         }}
       >
         {messages.map((msg, i) => (
-          <div key={i} style={{ marginBottom: '8px' }}>
+          <div key={i} style={{ marginBottom: '0.5rem' }}>
             <strong>{msg.username}:</strong> {msg.text}
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
         <input
-          placeholder="Type a message..."
+          placeholder="Type your message"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
-          style={{ flex: 1, padding: '8px' }}
+          style={{
+            flex: 1,
+            padding: '0.5rem',
+            fontSize: '1rem'
+          }}
         />
-        <button onClick={sendMessage} style={{ padding: '8px 16px' }}>
+        <button
+          onClick={sendMessage}
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '1rem',
+            cursor: 'pointer'
+          }}
+        >
           Send
         </button>
       </div>
