@@ -1,41 +1,43 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:3000"); // Update if using a different port
 
 function App() {
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-
-  const fetchMessages = async () => {
-    const res = await axios.get('http://localhost:3000/messages');
-    setMessages(res.data);
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
-    await axios.post('http://localhost:3000/messages', {
-      text: newMessage,
-      timestamp: new Date().toISOString(),
-    });
-    setNewMessage('');
-    fetchMessages();
-  };
+  const [messages, setMessages] = useState<string[]>([]);
+  const [input, setInput] = useState("");
 
   useEffect(() => {
-    fetchMessages();
+    socket.on("chat message", (msg: string) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    // Clean up on unmount
+    return () => {
+      socket.off("chat message");
+    };
   }, []);
 
+  const sendMessage = () => {
+    if (input.trim()) {
+      socket.emit("chat message", input);
+      setInput("");
+    }
+  };
+
   return (
-    <div style={{ padding: '1rem' }}>
-      <h1>Chat App</h1>
-      <div>
-        {messages.map((msg: any, index) => (
-          <div key={index}>{msg.text}</div>
+    <div style={{ padding: 20 }}>
+      <h1>Real-time Chat</h1>
+      <div style={{ marginBottom: 20 }}>
+        {messages.map((msg, i) => (
+          <div key={i}>{msg}</div>
         ))}
       </div>
       <input
-        value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-        placeholder="Type a message"
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && sendMessage()}
       />
       <button onClick={sendMessage}>Send</button>
     </div>
