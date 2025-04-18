@@ -16,7 +16,14 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-const client = redis.createClient();
+// Connect to Redis running inside WSL using its IP address
+const client = redis.createClient({
+  socket: {
+    host: '172.30.192.104',
+    port: 6379,
+  }
+});
+
 client.connect().catch(console.error);
 
 // API endpoint to fetch all messages
