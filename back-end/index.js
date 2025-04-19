@@ -9,13 +9,16 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: 'https://chat-frontend-kdat.onrender.com',
     methods: ['GET', 'POST'],
   },
 });
 
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://chat-frontend-kdat.onrender.com'
+}));
 app.use(express.json());
 
 // Redis Client
