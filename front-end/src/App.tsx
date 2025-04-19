@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import './index.css'; // make sure this path is correct!
+import './index.css'; // Only this is needed since all styles are here
 
 const socket = io('https://chat-backend-pkeg.onrender.com');
 
