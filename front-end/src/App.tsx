@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3000');
+const socket = io('https://chat-backend-pkeg.onrender.com');
 
 interface ChatMessage {
   username: string;
@@ -15,7 +15,7 @@ function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:3000/messages')
+    fetch('https://chat-backend-pkeg.onrender.com/messages')
       .then(res => res.json())
       .then(data => setMessages(data));
 
