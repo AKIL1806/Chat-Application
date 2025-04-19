@@ -4,12 +4,15 @@ const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 
+// Constants
+const FRONTEND_URL = 'https://chat-frontend-kdat.onrender.com';
+const REDIS_URL = 'rediss://default:AUrcAAIjcDE2YzY3M2E3NzY1NGU0ZDc4YTdmNzI2NDRkZWE5MGE0YnAxMA@clear-skink-19164.upstash.io:6379';
+
+// Initialize app and server
 const app = express();
 const httpServer = createServer(app);
 
-// Replace this with your actual frontend URL
-const FRONTEND_URL = 'https://chat-frontend-kdat.onrender.com';
-
+// Initialize socket.io with CORS
 const io = new Server(httpServer, {
   cors: {
     origin: FRONTEND_URL,
@@ -21,20 +24,20 @@ const io = new Server(httpServer, {
 app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json());
 
-// Redis client (Upstash TLS)
-const client = redis.createClient({
-  url: 'rediss://default:AUrcAAIjcDE2YzY3M2E3NzY1NGU0ZDc4YTdmNzI2NDRkZWE5MGE0YnAxMA@clear-skink-19164.upstash.io:6379',
-});
+// Redis client
+const client = redis.createClient({ url: REDIS_URL });
 
 client.on('error', (err) => {
   console.error('Redis Client Error:', err);
 });
 
-client.connect().then(() => {
-  console.log('✅ Connected to Upstash Redis');
-}).catch(console.error);
+client.connect()
+  .then(() => {
+    console.log('✅ Connected to Upstash Redis');
+  })
+  .catch(console.error);
 
-// REST endpoint to get all chat messages
+// REST endpoint to get messages
 app.get('/messages', async (req, res) => {
   try {
     const messages = await client.lRange('chat_messages', 0, -1);
@@ -46,7 +49,7 @@ app.get('/messages', async (req, res) => {
   }
 });
 
-// REST endpoint to send a message
+// REST endpoint to post a message
 app.post('/messages', async (req, res) => {
   const { username, text } = req.body;
 
@@ -70,7 +73,7 @@ app.post('/messages', async (req, res) => {
   }
 });
 
-// WebSocket logic
+// WebSocket handling
 io.on('connection', (socket) => {
   console.log('🟢 New WebSocket connection');
 
